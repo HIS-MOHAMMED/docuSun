@@ -7,3 +7,7 @@ __pycache__/
 
 # packaging
 *.egg-info
+
+# local test
+output.txt
+engine/ingestion/main.py
