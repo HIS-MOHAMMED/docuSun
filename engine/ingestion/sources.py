@@ -1,7 +1,16 @@
-# discouver files and folders from data directory
 import os
 
 def discover_files():
+    """
+    Discover files from data directory
+
+    Parameters:
+    - None
+
+    Returns:
+    - A string representing a single file path or a list of strings representing multiple file paths.
+
+    """
     directory = 'data'
     #get all files into data directory
     files = os.listdir(directory)
