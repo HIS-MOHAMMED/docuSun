@@ -42,6 +42,6 @@ def load_pdf(files):
             print(f"file not found: {exception.filename}")
             raise
         except Exception as exception:
-            print(f"An error occurred while loading {file_path}: {e}")
+            print(f"An error occurred while loading {file_path}: {exception}")
             raise 
     return documents       
