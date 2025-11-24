@@ -1,5 +1,6 @@
 import pymupdf
 from langchain.docstore.document import Document
+from engine.ingestion.cleaners import clean_extra_whitespaces, group_broken_paragraphs
 
 def load_pdf(files):
     """
@@ -28,6 +29,9 @@ def load_pdf(files):
             for page_num in range(len(doc)):
                 page = doc.load_page(page_num)
                 text += page.get_text("text")
+            # Apply post-processing steps
+            ext = clean_extra_whitespaces(text)
+            text = group_broken_paragraphs(text)
 
             # Create a Document object 
             document = Document(
