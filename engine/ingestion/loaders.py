@@ -30,7 +30,7 @@ def load_pdf(files):
                 page = doc.load_page(page_num)
                 text += page.get_text("text")
             # Apply post-processing steps
-            ext = clean_extra_whitespaces(text)
+            text = clean_extra_whitespaces(text)
             text = group_broken_paragraphs(text)
 
             # Create a Document object 
