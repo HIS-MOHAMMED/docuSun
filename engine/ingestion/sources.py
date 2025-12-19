@@ -14,5 +14,5 @@ def discover_files(path):
     #get all files into data directory
     files = os.listdir(path)
     #filter only pdf files
-    pdf_files = [f'{path}/{file}' for file in files if file.endswith('e.pdf')]
+    pdf_files = [f'{path}/{file}' for file in files if file.endswith('.pdf')]
     return pdf_files
