@@ -1,5 +1,5 @@
 import pymupdf
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 from engine.ingestion.cleaners import clean_extra_whitespaces, group_broken_paragraphs
 
 def load_pdf(files):
