@@ -12,7 +12,7 @@ class Encoder:
     def __init__(
         self,
         embedding_model: Optional[HuggingFaceEmbeddings] = None,
-        model_name: str = "BAAI/bge-large-en-v1.5",
+        model_name: str = "google/embeddinggemma-300m",
         device: str = "cpu",
     ):
         """
