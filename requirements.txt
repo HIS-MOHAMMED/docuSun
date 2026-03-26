@@ -11,3 +11,4 @@ langchain-openai
 pymupdf
 streamlit
 cohere
+python-dotenv
