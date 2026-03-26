@@ -11,3 +11,4 @@ __pycache__/
 # local test
 output.txt
 engine/ingestion/main.py
+.env
