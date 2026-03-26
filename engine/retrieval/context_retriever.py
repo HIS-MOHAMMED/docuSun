@@ -10,6 +10,6 @@ def retrieve_context(query, retriever):
     - A list of reranked documents deemed relevant to the query.
 
     """
-    retrieved_docs = retriever.get_relevant_documents(query)
+    retrieved_docs = retriever.invoke(query)
 
     return retrieved_docs
