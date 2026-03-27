@@ -8,17 +8,43 @@ from engine.ingestion.sources import discover_files
 from engine.ingestion.loaders import load_pdf
 from engine.ingestion.splitter import split_documents 
 from engine.embedding.encoder import Encoder
-from engine.store.chroma_store import get_retriever
+from engine.store.chroma_store import get_retriever, load_retriever
 
 EMBEDDING_MODEL_NAME = "google/embeddinggemma-300m"
 #load environment variables from .evn file 
 load_dotenv()
-def get_answer(context, question):
-    paths = discover_files("data")
+
+
+def index_documents(
+    data_path: str = "data",
+    chunk_size: int = 400,
+    top_k: int = 3,
+    persist_directory: str = "chroma_db",
+):
+    paths = discover_files(data_path)
     documents = load_pdf(paths)
-    chunks = list(split_documents(400, documents, EMBEDDING_MODEL_NAME))
-    encoder = Encoder()  # or Encoder(model_name=..., device=...)
-    retriever = get_retriever(chunks, encoder, top_k=3)
+    chunks = list(split_documents(chunk_size, documents, EMBEDDING_MODEL_NAME))
+    encoder = Encoder()
+    retriever = get_retriever(
+        chunks,
+        encoder,
+        top_k=top_k,
+        persist_directory=persist_directory,
+    )
+    return retriever
+
+
+def query_documents(
+    question: str,
+    top_k: int = 3,
+    persist_directory: str = "chroma_db",
+):
+    encoder = Encoder()
+    retriever = load_retriever(
+        encoder,
+        top_k=top_k,
+        persist_directory=persist_directory,
+    )
     chain = get_prompt() | get_llm() | StrOutputParser()
     context = retrieve_context(
             question, retriever=retriever,
