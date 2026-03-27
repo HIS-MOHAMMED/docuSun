@@ -3,7 +3,7 @@ from langchain_openai import ChatOpenAI
 
 def get_llm():
     llm = ChatOpenAI(
-        model="gpt-4o", 
+        model="gpt-5", 
         api_key=os.environ.get("GITHUB_TOKEN"), 
         base_url="https://models.inference.ai.azure.com",
         temperature=0

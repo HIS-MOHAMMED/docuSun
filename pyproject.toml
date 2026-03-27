@@ -3,4 +3,7 @@ name = "docuSun"
 version = "0.1.0"
 
 [tool.setuptools]
-packages=['engine']
+packages=['engine', 'cli']
+
+[project.scripts]
+docusun = "cli.cli:main"
