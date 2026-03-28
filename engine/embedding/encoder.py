@@ -1,30 +1,41 @@
-from typing import List, Sequence, Optional
-from langchain_huggingface import HuggingFaceEmbeddings
-from engine.embedding.models import load_embedding_model
+from typing import Any, List, Sequence, Optional
+from engine.embedding.models import load_embedding_model, load_embedding_model_api
 
 
 class Encoder:
     """
-    A simple wrapper around HuggingFaceEmbeddings that provides
+    A simple wrapper around embedding models that provides
     a clean interface for embedding texts and queries.
     """
 
     def __init__(
         self,
-        embedding_model: Optional[HuggingFaceEmbeddings] = None,
-        model_name: str = "google/embeddinggemma-300m",
+        embedding_model: Optional[Any] = None,
+        model_name: str = "text-embedding-3-small",
+        provider: str = "api",
         device: str = "cpu",
     ):
         """
         Initialize the encoder. If an embedding model is not provided,
-        load one using the project's factory function.
+        load one using the selected provider.
+
+        Parameters:
+        - provider: "api" for GitHub Models endpoint, "local" for HuggingFace local model.
         """
+        provider = (provider or "api").strip().lower()
+        if provider not in {"api", "local"}:
+            raise ValueError("Invalid embedding provider. Use 'api' or 'local'.")
+
         if embedding_model:
             self.embedding_model = embedding_model
-        else:
+        elif provider == "local":
             self.embedding_model = load_embedding_model(
                 model_name=model_name,
                 device=device,
+            )
+        else:
+            self.embedding_model = load_embedding_model_api(
+                model_name=model_name,
             )
 
     def embed_documents(self, texts: Sequence[str]) -> List[List[float]]:
