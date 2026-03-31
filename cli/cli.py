@@ -1,5 +1,7 @@
 # cli.py
-from jsonargparse import CLI
+from typing import Annotated
+
+from jsonargparse import CLI, ActionYesNo
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -10,6 +12,15 @@ console = Console()
 
 class DocuSunCLI:
     """DocuSun v0.2 - Local RAG Pipeline CLI"""
+
+    def _log(self, kind: str, message: str, value=None) -> None:
+        if kind == "step":
+            console.print(f"[yellow]• {message}[/yellow] [green]OK[/green]")
+            return
+        if kind == "kv":
+            console.print(f"[magenta]{message}:[/magenta] {value}")
+            return
+        console.print(f"[yellow]• {message}[/yellow]")
     
     def index(
         self,
@@ -17,6 +28,8 @@ class DocuSunCLI:
         chunk_size: int = 400,
         top_k: int = 3,
         persist_directory: str | None = None,
+        verbose: Annotated[bool, ActionYesNo] = False,
+        report: str | None = None,
     ):
         """Indexes documents from the data directory."""
         with console.status("[yellow]Indexing documents...[/yellow]"):
@@ -25,6 +38,8 @@ class DocuSunCLI:
                 chunk_size=chunk_size,
                 top_k=top_k,
                 persist_directory=persist_directory,
+                log_fn=self._log if verbose else None,
+                report_path=report,
             )
         console.print("[green]Indexing completed successfully.[/green]")
         
@@ -33,6 +48,8 @@ class DocuSunCLI:
         question: str,
         top_k: int = 3,
         persist_directory: str | None = None,
+        verbose: Annotated[bool, ActionYesNo] = False,
+        report: str | None = None,
     ):
         """Queries the indexed documents to answer a question."""
         with console.status("[yellow]Generating answer...[/yellow]"):
@@ -40,6 +57,8 @@ class DocuSunCLI:
                 question=question,
                 top_k=top_k,
                 persist_directory=persist_directory,
+                log_fn=self._log if verbose else None,
+                report_path=report,
             )
 
         console.print("[bold cyan]Answer[/bold cyan]")
