@@ -1,7 +1,6 @@
 .git/
 data/**
-!/data/.gitkeep
-
+!/data/.gitke
 # vs code 
 .vscode/
 

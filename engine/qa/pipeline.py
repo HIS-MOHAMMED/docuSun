@@ -1,4 +1,5 @@
 import os
+import re
 from dotenv import load_dotenv
 from langchain_core.output_parsers import StrOutputParser
 from engine.qa.llm import get_llm
@@ -22,14 +23,21 @@ EMBEDDING_MODEL_NAME = os.environ.get(
     "text-embedding-3-small" if EMBEDDING_PROVIDER == "api" else "google/embeddinggemma-300m",
 ).strip()
 EMBEDDING_DEVICE = os.environ.get("DOCUSUN_EMBEDDING_DEVICE", "cpu").strip()
-DOCUSUN_TOKENIZER_MODEL= os.environ.get("DOCUSUN_TOKENIZER_MODEL")
+DOCUSUN_TOKENIZER_MODEL = os.environ.get("DOCUSUN_TOKENIZER_MODEL", "gpt2").strip()
+
+
+def _default_persist_directory(provider: str, model_name: str) -> str:
+    safe_model = re.sub(r"[^a-zA-Z0-9._-]+", "_", model_name).strip("_")
+    return f"chroma_db_{provider}_{safe_model}"
 
 def index_documents(
     data_path: str = "data",
     chunk_size: int = 400,
     top_k: int = 3,
-    persist_directory: str = "chroma_db",
+    persist_directory: str | None = None,
 ):
+    if not persist_directory:
+        persist_directory = _default_persist_directory(EMBEDDING_PROVIDER, EMBEDDING_MODEL_NAME)
     paths = discover_files(data_path)
     documents = load_pdf(paths)
     chunks = list(split_documents(chunk_size, documents, DOCUSUN_TOKENIZER_MODEL))
@@ -50,8 +58,10 @@ def index_documents(
 def query_documents(
     question: str,
     top_k: int = 3,
-    persist_directory: str = "chroma_db",
+    persist_directory: str | None = None,
 ):
+    if not persist_directory:
+        persist_directory = _default_persist_directory(EMBEDDING_PROVIDER, EMBEDDING_MODEL_NAME)
     encoder = Encoder(
         model_name=EMBEDDING_MODEL_NAME,
         provider=EMBEDDING_PROVIDER,
