@@ -16,7 +16,7 @@ class DocuSunCLI:
         data_path: str = "data",
         chunk_size: int = 400,
         top_k: int = 3,
-        persist_directory: str = "chroma_db",
+        persist_directory: str | None = None,
     ):
         """Indexes documents from the data directory."""
         with console.status("[yellow]Indexing documents...[/yellow]"):
@@ -32,7 +32,7 @@ class DocuSunCLI:
         self,
         question: str,
         top_k: int = 3,
-        persist_directory: str = "chroma_db",
+        persist_directory: str | None = None,
     ):
         """Queries the indexed documents to answer a question."""
         with console.status("[yellow]Generating answer...[/yellow]"):
