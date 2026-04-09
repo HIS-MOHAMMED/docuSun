@@ -3,7 +3,7 @@ import re
 from typing import Any, Callable, Optional
 from dotenv import load_dotenv
 from langchain_core.output_parsers import StrOutputParser
-from engine.qa.llm import get_llm
+from engine.qa.llm import get_llm, get_llm_model_name
 from engine.qa.prompt import get_prompt
 from engine.qa.reporting import (
     write_header,
@@ -41,6 +41,29 @@ def _default_persist_directory(provider: str, model_name: str) -> str:
     return f"chroma_db_{provider}_{safe_model}"
 
 
+def _preview_text(text: str, limit: int = 160) -> str:
+    text = (text or "").replace("\n", " ").strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3] + "..."
+
+
+def _format_chunk_previews(chunks, limit: int = 10) -> list[str]:
+    previews: list[str] = []
+    for i, chunk in enumerate(chunks[:limit]):
+        meta = getattr(chunk, "metadata", {}) or {}
+        source = meta.get("source") or meta.get("file_path") or meta.get("path") or ""
+        page = meta.get("page")
+        prefix = f"{i}. "
+        if source:
+            prefix += f"{source}"
+            if page is not None:
+                prefix += f" (page {page})"
+            prefix += ": "
+        previews.append(prefix + _preview_text(getattr(chunk, "page_content", "")))
+    return previews
+
+
 def _emit(log_fn: Optional[Callable[..., None]], kind: str, message: str, value: Any | None = None) -> None:
     if log_fn:
         log_fn(kind, message, value)
@@ -58,6 +81,7 @@ def index_documents(
     _emit(log_fn, "step", "Discovering files")
     paths = discover_files(data_path)
     _emit(log_fn, "kv", "Files", len(paths))
+    _emit(log_fn, "list", "File list (first 10)", paths[:10])
 
     _emit(log_fn, "step", "Loading documents")
     documents = load_pdf(paths)
@@ -66,6 +90,7 @@ def index_documents(
     _emit(log_fn, "step", "Splitting into chunks")
     chunks = list(split_documents(chunk_size, documents, DOCUSUN_TOKENIZER_MODEL))
     _emit(log_fn, "kv", "Chunks created", len(chunks))
+    _emit(log_fn, "chunks", "Chunks (first 10)", _format_chunk_previews(chunks, limit=10))
 
     _emit(log_fn, "kv", "Embedding provider", EMBEDDING_PROVIDER)
     _emit(log_fn, "kv", "Embedding model", EMBEDDING_MODEL_NAME)
@@ -116,6 +141,7 @@ def query_documents(
     _emit(log_fn, "kv", "Persist directory", persist_directory)
     _emit(log_fn, "kv", "Top k", top_k)
     _emit(log_fn, "kv", "Question", question)
+    _emit(log_fn, "kv", "LLM model", get_llm_model_name())
 
     _emit(log_fn, "step", "Loading retriever")
     encoder = Encoder(
@@ -134,6 +160,7 @@ def query_documents(
             question, retriever=retriever,
         )
     _emit(log_fn, "kv", "Retrieved chunks", len(context))
+    _emit(log_fn, "chunks", "Similar chunks (first 10)", _format_chunk_previews(context, limit=10))
 
     _emit(log_fn, "step", "Generating answer")
     response = chain.invoke({"context": context, "question": question})

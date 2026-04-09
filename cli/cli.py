@@ -20,6 +20,16 @@ class DocuSunCLI:
         if kind == "kv":
             console.print(f"[magenta]{message}:[/magenta] {value}")
             return
+        if kind == "list":
+            console.print(f"[cyan]{message}[/cyan]")
+            for item in value or []:
+                console.print(f"[yellow]  •[/yellow] {item}")
+            return
+        if kind == "chunks":
+            console.print(f"[cyan]{message}[/cyan]")
+            for item in value or []:
+                console.print(f"[yellow]  •[/yellow] {item}")
+            return
         console.print(f"[yellow]• {message}[/yellow]")
     
     def index(
