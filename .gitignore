@@ -15,4 +15,4 @@ output.txt
 engine/ingestion/main.py
 .env
 chroma_db/
-
+chroma_db_api_text-embedding-3-small/
