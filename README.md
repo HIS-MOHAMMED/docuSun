@@ -73,14 +73,14 @@ Core stack includes:
 - loguru  
 - python-dotenv  
 - streamlit (for future UI)  
-- langchain-openai / API-compatible model access  
+- langchain-ollama (local LLM inference)  
 
 
 
 ## Installation (Terminal)
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/HIS-MOHAMMED/docuSun.git
 cd docuSun
 
 python3 -m venv .venv
@@ -95,17 +95,15 @@ pip install -e .
 
 ## Environment Setup
 
-Create a `.env` file in the project root (if using API-based models):
+Create a `.env` file in the project root. `DOCUSUN_LLM_MODEL`, `DOCUSUN_OLLAMA_BASE_URL`, `DOCUSUN_EMBEDDING_MODEL`, and `DOCUSUN_TOKENIZER_MODEL` are required:
 
 ```env
-DocuSun_GITHUB_TOKEN=your_token_here
-DOCUSUN_EMBEDDING_PROVIDER=api
-DOCUSUN_EMBEDDING_MODEL=text-embedding-3-small
-DOCUSUN_EMBEDDING_DEVICE=cpu
-DOCUSUN_TOKENIZER_MODEL=gpt2
+DOCUSUN_LLM_MODEL= # Your_installed_local_llm (e.g., llama3.1:8b-instruct-q4_K_M)
+DOCUSUN_OLLAMA_BASE_URL= # Your_ollama_base_url (e.g., http://localhost:11434)
+DOCUSUN_EMBEDDING_MODEL= # Your_local_embedding_model (e.g., google/embeddinggemma-300m)
+DOCUSUN_EMBEDDING_DEVICE= # Your_device (e.g., cpu, cuda, mps)
+DOCUSUN_TOKENIZER_MODEL= # Your_tokenizer_model (e.g., gpt2)
 ```
-
-For local embeddings, switch provider to `local` and choose a local embedding model name.
 
 
 
@@ -118,7 +116,7 @@ docusun index --data_path data --chunk_size 400 --top_k 3
 
 ### Ask a question:
 ```bash
-docusun query --question "What are the main findings?" --top_k 3
+docusun query --question "type_your_question_here" --top_k 3
 ```
 
 

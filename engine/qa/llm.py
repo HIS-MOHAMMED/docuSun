@@ -1,17 +1,26 @@
 import os
-from langchain_openai import ChatOpenAI
+from langchain_ollama import ChatOllama
 
-LLM_MODEL_NAME = "gpt-5"
+
+def _require_env(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise ValueError(f"{name} is required but not set.")
+    return value
 
 
 def get_llm_model_name() -> str:
-    return LLM_MODEL_NAME
+    return _require_env("DOCUSUN_LLM_MODEL")
+
+
+def get_llm_base_url() -> str:
+    return _require_env("DOCUSUN_OLLAMA_BASE_URL")
+
 
 def get_llm():
-    llm = ChatOpenAI(
-        model=LLM_MODEL_NAME,
-        api_key=os.environ.get("DocuSun_GITHUB_TOKEN"), 
-        base_url="https://models.inference.ai.azure.com",
-        temperature=0
+    llm = ChatOllama(
+        model=get_llm_model_name(),
+        base_url=get_llm_base_url(),
+        temperature=0,
     )
-    return llm 
+    return llm
