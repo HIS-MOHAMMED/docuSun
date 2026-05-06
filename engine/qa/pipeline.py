@@ -24,16 +24,17 @@ from engine.store.chroma_store import get_retriever, load_retriever
 #load environment variables from .evn file 
 load_dotenv()
 
-EMBEDDING_PROVIDER = os.environ.get("DOCUSUN_EMBEDDING_PROVIDER", "api").strip().lower()
-if EMBEDDING_PROVIDER not in {"api", "local"}:
-    raise ValueError("DOCUSUN_EMBEDDING_PROVIDER must be either 'api' or 'local'.")
+def _require_env(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise ValueError(f"{name} is required but not set.")
+    return value
 
-EMBEDDING_MODEL_NAME = os.environ.get(
-    "DOCUSUN_EMBEDDING_MODEL",
-    "text-embedding-3-small" if EMBEDDING_PROVIDER == "api" else "google/embeddinggemma-300m",
-).strip()
+
+EMBEDDING_PROVIDER = "local"
+EMBEDDING_MODEL_NAME = _require_env("DOCUSUN_EMBEDDING_MODEL")
 EMBEDDING_DEVICE = os.environ.get("DOCUSUN_EMBEDDING_DEVICE", "cpu").strip()
-DOCUSUN_TOKENIZER_MODEL = os.environ.get("DOCUSUN_TOKENIZER_MODEL", "gpt2").strip()
+DOCUSUN_TOKENIZER_MODEL = _require_env("DOCUSUN_TOKENIZER_MODEL")
 
 
 def _default_persist_directory(provider: str, model_name: str) -> str:
@@ -92,7 +93,6 @@ def index_documents(
     _emit(log_fn, "kv", "Chunks created", len(chunks))
     _emit(log_fn, "chunks", "Chunks (first 10)", _format_chunk_previews(chunks, limit=10))
 
-    _emit(log_fn, "kv", "Embedding provider", EMBEDDING_PROVIDER)
     _emit(log_fn, "kv", "Embedding model", EMBEDDING_MODEL_NAME)
     _emit(log_fn, "kv", "Persist directory", persist_directory)
 
@@ -114,7 +114,6 @@ def index_documents(
 
     encoder = Encoder(
         model_name=EMBEDDING_MODEL_NAME,
-        provider=EMBEDDING_PROVIDER,
         device=EMBEDDING_DEVICE,
     )
     _emit(log_fn, "step", "Persisting embeddings")
@@ -136,7 +135,6 @@ def query_documents(
 ):
     if not persist_directory:
         persist_directory = _default_persist_directory(EMBEDDING_PROVIDER, EMBEDDING_MODEL_NAME)
-    _emit(log_fn, "kv", "Embedding provider", EMBEDDING_PROVIDER)
     _emit(log_fn, "kv", "Embedding model", EMBEDDING_MODEL_NAME)
     _emit(log_fn, "kv", "Persist directory", persist_directory)
     _emit(log_fn, "kv", "Top k", top_k)
@@ -146,7 +144,6 @@ def query_documents(
     _emit(log_fn, "step", "Loading retriever")
     encoder = Encoder(
         model_name=EMBEDDING_MODEL_NAME,
-        provider=EMBEDDING_PROVIDER,
         device=EMBEDDING_DEVICE,
     )
     retriever = load_retriever(

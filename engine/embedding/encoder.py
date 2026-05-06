@@ -1,5 +1,5 @@
 from typing import Any, List, Sequence, Optional
-from engine.embedding.models import load_embedding_model, load_embedding_model_api
+from engine.embedding.models import load_embedding_model
 
 
 class Encoder:
@@ -11,32 +11,22 @@ class Encoder:
     def __init__(
         self,
         embedding_model: Optional[Any] = None,
-        model_name: str = "text-embedding-3-small",
-        provider: str = "api",
+        model_name: Optional[str] = None,
         device: str = "cpu",
     ):
         """
         Initialize the encoder. If an embedding model is not provided,
-        load one using the selected provider.
-
-        Parameters:
-        - provider: "api" for GitHub Models endpoint, "local" for HuggingFace local model.
+        load one locally using the selected model.
         """
-        provider = (provider or "api").strip().lower()
-        if provider not in {"api", "local"}:
-            raise ValueError("Invalid embedding provider. Use 'api' or 'local'.")
-
         if embedding_model:
             self.embedding_model = embedding_model
-        elif provider == "local":
-            self.embedding_model = load_embedding_model(
-                model_name=model_name,
-                device=device,
-            )
-        else:
-            self.embedding_model = load_embedding_model_api(
-                model_name=model_name,
-            )
+            return
+        if not model_name:
+            raise ValueError("model_name is required when embedding_model is not provided.")
+        self.embedding_model = load_embedding_model(
+            model_name=model_name,
+            device=device,
+        )
 
     def embed_documents(self, texts: Sequence[str]) -> List[List[float]]:
         """
