@@ -4,7 +4,7 @@
 
 # DocuSun - Local Document Assistant
 
-DocuSun is local AI document assistant for indexing local files and answering questions from their content.
+DocuSun is a local-first AI document assistant for indexing files and answering questions from their content.
 
 
 # Demo
@@ -74,6 +74,7 @@ Core stack includes:
 - python-dotenv  
 - streamlit (for future UI)  
 - langchain-ollama (local LLM inference)  
+- langchain-google-genai (Gemini API inference)  
 
 
 
@@ -95,13 +96,28 @@ pip install -e .
 
 ## Environment Setup
 
-Create a `.env` file in the project root. `DOCUSUN_LLM_MODEL`, `DOCUSUN_OLLAMA_BASE_URL`, `DOCUSUN_EMBEDDING_MODEL`, and `DOCUSUN_TOKENIZER_MODEL` are required:
+Create a `.env` file in the project root. Local is the default provider. Set `DOCUSUN_PROVIDER=api` to use Gemini via Google AI Studio.
 
 ```env
-DOCUSUN_LLM_MODEL= # Your_installed_local_llm (e.g., llama3.1:8b-instruct-q4_K_M)
+# Provider selection (default: local)
+DOCUSUN_PROVIDER=local
+
+# LLM model name (local or Gemini)
+DOCUSUN_LLM_MODEL= # Local example: llama3.1:8b-instruct-q4_K_M | API example: gemini-2.5-flash
+
+# Local LLM configuration (Ollama) - required when DOCUSUN_PROVIDER=local
 DOCUSUN_OLLAMA_BASE_URL= # Your_ollama_base_url (e.g., http://localhost:11434)
-DOCUSUN_EMBEDDING_MODEL= # Your_local_embedding_model (e.g., google/embeddinggemma-300m)
+
+# Gemini API key - required when DOCUSUN_PROVIDER=api
+GOOGLE_API_KEY= # Your_Google_AI_Studio_API_key
+
+# Embedding model name (local or Gemini)
+DOCUSUN_EMBEDDING_MODEL= # Local example: google/embeddinggemma-300m | API example: text-embedding-004
+
+# Used only for local embeddings
 DOCUSUN_EMBEDDING_DEVICE= # Your_device (e.g., cpu, cuda, mps)
+
+# Tokenizer model used for chunking (Hugging Face model name)
 DOCUSUN_TOKENIZER_MODEL= # Your_tokenizer_model (e.g., gpt2)
 ```
 

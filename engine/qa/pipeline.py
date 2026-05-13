@@ -31,7 +31,14 @@ def _require_env(name: str) -> str:
     return value
 
 
-EMBEDDING_PROVIDER = "local"
+def _get_provider() -> str:
+    value = os.environ.get("DOCUSUN_PROVIDER", "local").strip().lower()
+    if value not in {"local", "api"}:
+        raise ValueError("DOCUSUN_PROVIDER must be 'local' or 'api'.")
+    return value
+
+
+EMBEDDING_PROVIDER = _get_provider()
 EMBEDDING_MODEL_NAME = _require_env("DOCUSUN_EMBEDDING_MODEL")
 EMBEDDING_DEVICE = os.environ.get("DOCUSUN_EMBEDDING_DEVICE", "cpu").strip()
 DOCUSUN_TOKENIZER_MODEL = _require_env("DOCUSUN_TOKENIZER_MODEL")
@@ -115,6 +122,7 @@ def index_documents(
     encoder = Encoder(
         model_name=EMBEDDING_MODEL_NAME,
         device=EMBEDDING_DEVICE,
+        provider=EMBEDDING_PROVIDER,
     )
     _emit(log_fn, "step", "Persisting embeddings")
     retriever = get_retriever(
@@ -145,6 +153,7 @@ def query_documents(
     encoder = Encoder(
         model_name=EMBEDDING_MODEL_NAME,
         device=EMBEDDING_DEVICE,
+        provider=EMBEDDING_PROVIDER,
     )
     retriever = load_retriever(
         encoder,
