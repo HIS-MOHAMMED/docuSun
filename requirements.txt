@@ -10,4 +10,5 @@ jsonargparse
 pymupdf
 streamlit
 langchain-ollama
+langchain-google-genai
 python-dotenv

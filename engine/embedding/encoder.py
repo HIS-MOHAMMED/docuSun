@@ -1,5 +1,5 @@
 from typing import Any, List, Sequence, Optional
-from engine.embedding.models import load_embedding_model
+from engine.embedding.models import load_embedding_model, load_embedding_model_api
 
 
 class Encoder:
@@ -13,20 +13,32 @@ class Encoder:
         embedding_model: Optional[Any] = None,
         model_name: Optional[str] = None,
         device: str = "cpu",
+        provider: str = "local",
+        api_key: Optional[str] = None,
     ):
         """
         Initialize the encoder. If an embedding model is not provided,
-        load one locally using the selected model.
+        load one using the selected provider and model.
         """
         if embedding_model:
             self.embedding_model = embedding_model
             return
         if not model_name:
             raise ValueError("model_name is required when embedding_model is not provided.")
-        self.embedding_model = load_embedding_model(
-            model_name=model_name,
-            device=device,
-        )
+        provider = (provider or "local").strip().lower()
+        if provider == "local":
+            self.embedding_model = load_embedding_model(
+                model_name=model_name,
+                device=device,
+            )
+            return
+        if provider == "api":
+            self.embedding_model = load_embedding_model_api(
+                model_name=model_name,
+                api_key=api_key,
+            )
+            return
+        raise ValueError(f"Unsupported DOCUSUN_PROVIDER: {provider}")
 
     def embed_documents(self, texts: Sequence[str]) -> List[List[float]]:
         """
@@ -38,7 +50,8 @@ class Encoder:
         Returns
         - List[List[float]] : A list of embedding vectors
         """
-        return self.embedding_model.embed_documents(texts)
+        texts_list = list(texts)
+        return self.embedding_model.embed_documents(texts_list)
 
     def embed_query(self, query: str) -> List[float]:
         """
