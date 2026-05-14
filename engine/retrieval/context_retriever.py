@@ -1,3 +1,17 @@
+import os
+
+from engine.retrieval.reranker import rerank_with_gemini
+
+
+def _is_reranker_enabled() -> bool:
+    return os.environ.get("DOCUSUN_ENABLE_RERANKER", "true").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def retrieve_context(query, retriever):
     """
     Retrieves and reranks documents relevant to a given query.
@@ -11,5 +25,8 @@ def retrieve_context(query, retriever):
 
     """
     retrieved_docs = retriever.invoke(query)
+    if not _is_reranker_enabled():
+        return retrieved_docs
 
-    return retrieved_docs
+    reranked_docs = rerank_with_gemini(query=query, retrieved_docs=retrieved_docs)
+    return reranked_docs
