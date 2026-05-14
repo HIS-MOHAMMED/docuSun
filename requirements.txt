@@ -11,4 +11,5 @@ pymupdf
 streamlit
 langchain-ollama
 langchain-google-genai
+langchain-cohere
 python-dotenv
