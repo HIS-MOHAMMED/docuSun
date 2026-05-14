@@ -111,6 +111,15 @@ DOCUSUN_OLLAMA_BASE_URL= # Your_ollama_base_url (e.g., http://localhost:11434)
 # Gemini API key - required when DOCUSUN_PROVIDER=api
 GOOGLE_API_KEY= # Your_Google_AI_Studio_API_key
 
+# Multi-query retrieval toggle (default: disabled)
+DOCUSUN_ENABLE_MULTI_QUERY=false
+
+# Cohere API key - required when multi-query retrieval is enabled
+COHERE_API_KEY= # Your_Cohere_API_key
+
+# Cohere model used for multi-query generation (optional)
+DOCUSUN_MULTI_QUERY_MODEL=command-r
+
 # Embedding model name (local or Gemini)
 DOCUSUN_EMBEDDING_MODEL= # Local example: google/embeddinggemma-300m | API example: text-embedding-004
 
