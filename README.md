@@ -114,6 +114,14 @@ GOOGLE_API_KEY= # Your_Google_AI_Studio_API_key
 # Multi-query retrieval toggle (default: disabled)
 DOCUSUN_ENABLE_MULTI_QUERY=false
 
+# Hybrid search toggle (default: disabled)
+DOCUSUN_ENABLE_HYBRID_SEARCH=false
+
+# Hybrid retriever tuning (optional)
+DOCUSUN_HYBRID_VECTOR_WEIGHT=0.5
+DOCUSUN_HYBRID_KEYWORD_WEIGHT=0.5
+DOCUSUN_HYBRID_BM25_K=3
+
 # Cohere API key - required when multi-query retrieval is enabled
 COHERE_API_KEY= # Your_Cohere_API_key
 

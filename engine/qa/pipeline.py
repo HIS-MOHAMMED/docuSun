@@ -20,6 +20,11 @@ from engine.ingestion.loaders import load_pdf
 from engine.ingestion.splitter import split_documents 
 from engine.embedding.encoder import Encoder
 from engine.store.chroma_store import get_retriever, load_retriever
+from engine.retrieval.hybrid_search import (
+    get_hybrid_retriever,
+    load_hybrid_retriever,
+    is_hybrid_search_enabled,
+)
 
 #load environment variables from .evn file 
 load_dotenv()
@@ -102,6 +107,7 @@ def index_documents(
 
     _emit(log_fn, "kv", "Embedding model", EMBEDDING_MODEL_NAME)
     _emit(log_fn, "kv", "Persist directory", persist_directory)
+    _emit(log_fn, "kv", "Hybrid search", is_hybrid_search_enabled())
 
     if report_path:
         with open(report_path, "w", encoding="utf-8") as out:
@@ -125,12 +131,20 @@ def index_documents(
         provider=EMBEDDING_PROVIDER,
     )
     _emit(log_fn, "step", "Persisting embeddings")
-    retriever = get_retriever(
-        chunks,
-        encoder,
-        top_k=top_k,
-        persist_directory=persist_directory,
-    )
+    if is_hybrid_search_enabled():
+        retriever = get_hybrid_retriever(
+            chunks,
+            encoder,
+            top_k=top_k,
+            persist_directory=persist_directory,
+        )
+    else:
+        retriever = get_retriever(
+            chunks,
+            encoder,
+            top_k=top_k,
+            persist_directory=persist_directory,
+        )
     return retriever
 
 
@@ -148,6 +162,7 @@ def query_documents(
     _emit(log_fn, "kv", "Top k", top_k)
     _emit(log_fn, "kv", "Question", question)
     _emit(log_fn, "kv", "LLM model", get_llm_model_name())
+    _emit(log_fn, "kv", "Hybrid search", is_hybrid_search_enabled())
 
     _emit(log_fn, "step", "Loading retriever")
     encoder = Encoder(
@@ -155,11 +170,18 @@ def query_documents(
         device=EMBEDDING_DEVICE,
         provider=EMBEDDING_PROVIDER,
     )
-    retriever = load_retriever(
-        encoder,
-        top_k=top_k,
-        persist_directory=persist_directory,
-    )
+    if is_hybrid_search_enabled():
+        retriever = load_hybrid_retriever(
+            encoder,
+            top_k=top_k,
+            persist_directory=persist_directory,
+        )
+    else:
+        retriever = load_retriever(
+            encoder,
+            top_k=top_k,
+            persist_directory=persist_directory,
+        )
     _emit(log_fn, "step", "Retrieving context")
     chain = get_prompt() | get_llm() | StrOutputParser()
     context = retrieve_context(
