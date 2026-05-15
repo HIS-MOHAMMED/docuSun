@@ -26,6 +26,11 @@ from engine.retrieval.hybrid_search import (
     is_hybrid_search_enabled,
 )
 
+from engine.retrieval.parent_retrieval import(
+    create_parent_retriever,
+    is_parent_retrieval_enabled,
+)
+
 #load environment variables from .evn file 
 load_dotenv()
 
@@ -131,7 +136,15 @@ def index_documents(
         provider=EMBEDDING_PROVIDER,
     )
     _emit(log_fn, "step", "Persisting embeddings")
-    if is_hybrid_search_enabled():
+    if is_parent_retrieval_enabled():
+        retriever = create_parent_retriever(
+            documents,
+            EMBEDDING_MODEL_NAME,
+            "parent_retrieval",
+            3,
+            persist_directory
+        )
+    elif is_hybrid_search_enabled():
         retriever = get_hybrid_retriever(
             chunks,
             encoder,
@@ -140,7 +153,7 @@ def index_documents(
         )
     else:
         retriever = get_retriever(
-            chunks,
+            documents,
             encoder,
             top_k=top_k,
             persist_directory=persist_directory,
