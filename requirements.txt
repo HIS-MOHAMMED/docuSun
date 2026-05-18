@@ -12,4 +12,5 @@ streamlit
 langchain-ollama
 langchain-google-genai
 langchain-cohere
+langchain-nvidia-ai-endpoints
 python-dotenv

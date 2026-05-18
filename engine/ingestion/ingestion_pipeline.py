@@ -6,7 +6,8 @@ from .splitter import split_documents
 def ingest_documents(
         chuck_size: int,
         tokenizer_name,
-        path:str
+        path: str,
+        chunk_overlap: int | None = None,
 ):
     """
     High-level ingestion pipeline that combines the sources, loaders, 
@@ -28,6 +29,11 @@ def ingest_documents(
     documents = load_pdf(files)
 
     # Split documents into smaller chunk documents
-    chunks = split_documents(chuck_size, documents, tokenizer_name)
+    chunks = split_documents(
+        chuck_size,
+        documents,
+        tokenizer_name,
+        chunk_overlap=chunk_overlap,
+    )
     
     return chunks

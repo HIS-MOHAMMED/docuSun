@@ -1,4 +1,6 @@
 import os
+from typing import Any
+
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
@@ -12,7 +14,7 @@ def _require_env(name: str) -> str:
 def load_embedding_model(
     model_name,
     device="cpu",
-)-> HuggingFaceEmbeddings:
+) -> HuggingFaceEmbeddings:
     """
     Loads a local embedding model from Hugging Face.
 
@@ -62,4 +64,31 @@ def load_embedding_model_api(
         return embedding_model
     except Exception as e:
         print(f"An error accurred while loading the API model: {e}")
+        raise
+
+
+def load_embedding_model_nvidia(
+    model_name: str,
+    api_key: str | None = None,
+) -> Any:
+    """
+    Loads an embedding model via NVIDIA Build API.
+
+    Parameters:
+    - model_name: The NVIDIA embedding model name.
+    - api_key: Optional API key (defaults to NVIDIA_API_KEY).
+    """
+    resolved_api_key = api_key or _require_env("NVIDIA_API_KEY")
+
+    try:
+        from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
+
+        embedding_model = NVIDIAEmbeddings(
+            model=model_name,
+            nvidia_api_key=resolved_api_key,
+            truncate="NONE",
+        )
+        return embedding_model
+    except Exception as e:
+        print(f"An error accurred while loading the NVIDIA API model: {e}")
         raise

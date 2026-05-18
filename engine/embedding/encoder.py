@@ -1,5 +1,9 @@
 from typing import Any, List, Sequence, Optional
-from engine.embedding.models import load_embedding_model, load_embedding_model_api
+from engine.embedding.models import (
+    load_embedding_model,
+    load_embedding_model_api,
+    load_embedding_model_nvidia,
+)
 
 
 class Encoder:
@@ -34,6 +38,12 @@ class Encoder:
             return
         if provider == "api":
             self.embedding_model = load_embedding_model_api(
+                model_name=model_name,
+                api_key=api_key,
+            )
+            return
+        if provider == "nvidia":
+            self.embedding_model = load_embedding_model_nvidia(
                 model_name=model_name,
                 api_key=api_key,
             )

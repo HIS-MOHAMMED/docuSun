@@ -17,7 +17,7 @@ from engine.qa.reporting import (
 from engine.retrieval.context_retriever import retrieve_context
 from engine.ingestion.sources import discover_files
 from engine.ingestion.loaders import load_pdf
-from engine.ingestion.splitter import split_documents 
+from engine.ingestion.splitter import split_documents, validate_chunk_overlap
 from engine.embedding.encoder import Encoder
 from engine.store.chroma_store import get_retriever, load_retriever
 from engine.retrieval.hybrid_search import (
@@ -31,27 +31,36 @@ from engine.retrieval.parent_retrieval import(
     is_parent_retrieval_enabled,
 )
 
-#load environment variables from .evn file 
+# load environment variables from .env file
 load_dotenv()
 
-def _require_env(name: str) -> str:
-    value = os.environ.get(name, "").strip()
-    if not value:
-        raise ValueError(f"{name} is required but not set.")
+def _get_provider(provider: str | None = None) -> str:
+    value = provider if provider is not None else os.environ.get("DOCUSUN_PROVIDER", "local")
+    value = value.strip().lower()
+    if value not in {"local", "api", "nvidia"}:
+        raise ValueError("DOCUSUN_PROVIDER must be 'local', 'api', or 'nvidia'.")
     return value
 
 
-def _get_provider() -> str:
-    value = os.environ.get("DOCUSUN_PROVIDER", "local").strip().lower()
-    if value not in {"local", "api"}:
-        raise ValueError("DOCUSUN_PROVIDER must be 'local' or 'api'.")
-    return value
+def _resolve_runtime_setting(
+    override: str | None,
+    env_name: str,
+    default: str | None = None,
+) -> str:
+    if override is not None and override.strip():
+        return override.strip()
+    env_value = os.environ.get(env_name, "").strip()
+    if env_value:
+        return env_value
+    if default is not None:
+        return default
+    raise ValueError(f"{env_name} is required but not set.")
 
 
-EMBEDDING_PROVIDER = _get_provider()
-EMBEDDING_MODEL_NAME = _require_env("DOCUSUN_EMBEDDING_MODEL")
-EMBEDDING_DEVICE = os.environ.get("DOCUSUN_EMBEDDING_DEVICE", "cpu").strip()
-DOCUSUN_TOKENIZER_MODEL = _require_env("DOCUSUN_TOKENIZER_MODEL")
+def _resolve_embedding_device(device: str | None) -> str:
+    resolved = device if device is not None else os.environ.get("DOCUSUN_EMBEDDING_DEVICE", "cpu")
+    resolved = resolved.strip() if resolved else "cpu"
+    return resolved or "cpu"
 
 
 def _default_persist_directory(provider: str, model_name: str) -> str:
@@ -89,13 +98,34 @@ def _emit(log_fn: Optional[Callable[..., None]], kind: str, message: str, value:
 def index_documents(
     data_path: str = "data",
     chunk_size: int = 400,
+    chunk_overlap: int | None = None,
     top_k: int = 3,
     persist_directory: str | None = None,
+    tokenizer_model: str | None = None,
+    embedding_model: str | None = None,
+    embedding_device: str | None = None,
+    embedding_provider: str | None = None,
+    embedding_api_key: str | None = None,
     log_fn: Optional[Callable[..., None]] = None,
     report_path: str | None = None,
 ):
+    resolved_embedding_provider = _get_provider(embedding_provider)
+    resolved_embedding_model = _resolve_runtime_setting(
+        embedding_model,
+        "DOCUSUN_EMBEDDING_MODEL",
+    )
+    resolved_embedding_device = _resolve_embedding_device(embedding_device)
+    resolved_tokenizer_model = _resolve_runtime_setting(
+        tokenizer_model,
+        "DOCUSUN_TOKENIZER_MODEL",
+    )
+    resolved_chunk_overlap = validate_chunk_overlap(chunk_size, chunk_overlap)
+
     if not persist_directory:
-        persist_directory = _default_persist_directory(EMBEDDING_PROVIDER, EMBEDDING_MODEL_NAME)
+        persist_directory = _default_persist_directory(
+            resolved_embedding_provider,
+            resolved_embedding_model,
+        )
     _emit(log_fn, "step", "Discovering files")
     paths = discover_files(data_path)
     _emit(log_fn, "kv", "Files", len(paths))
@@ -106,11 +136,22 @@ def index_documents(
     _emit(log_fn, "kv", "Documents loaded", len(documents))
 
     _emit(log_fn, "step", "Splitting into chunks")
-    chunks = list(split_documents(chunk_size, documents, DOCUSUN_TOKENIZER_MODEL))
+    chunks = list(
+        split_documents(
+            chunk_size,
+            documents,
+            resolved_tokenizer_model,
+            chunk_overlap=resolved_chunk_overlap,
+        )
+    )
     _emit(log_fn, "kv", "Chunks created", len(chunks))
     _emit(log_fn, "chunks", "Chunks (first 10)", _format_chunk_previews(chunks, limit=10))
+    _emit(log_fn, "kv", "Tokenizer model", resolved_tokenizer_model)
+    _emit(log_fn, "kv", "Chunk overlap", resolved_chunk_overlap)
 
-    _emit(log_fn, "kv", "Embedding model", EMBEDDING_MODEL_NAME)
+    _emit(log_fn, "kv", "Embedding model", resolved_embedding_model)
+    _emit(log_fn, "kv", "Embedding provider", resolved_embedding_provider)
+    _emit(log_fn, "kv", "Embedding device", resolved_embedding_device)
     _emit(log_fn, "kv", "Persist directory", persist_directory)
     _emit(log_fn, "kv", "Hybrid search", is_hybrid_search_enabled())
 
@@ -126,20 +167,23 @@ def index_documents(
             write_chunks(out, chunks)
 
             write_header(out, "Embedding model")
-            write_kv(out, "provider", EMBEDDING_PROVIDER)
-            write_kv(out, "model", EMBEDDING_MODEL_NAME)
+            write_kv(out, "provider", resolved_embedding_provider)
+            write_kv(out, "model", resolved_embedding_model)
             write_kv(out, "persist_directory", persist_directory)
+            write_kv(out, "tokenizer", resolved_tokenizer_model)
+            write_kv(out, "chunk_overlap", resolved_chunk_overlap)
 
     encoder = Encoder(
-        model_name=EMBEDDING_MODEL_NAME,
-        device=EMBEDDING_DEVICE,
-        provider=EMBEDDING_PROVIDER,
+        model_name=resolved_embedding_model,
+        device=resolved_embedding_device,
+        provider=resolved_embedding_provider,
+        api_key=embedding_api_key,
     )
     _emit(log_fn, "step", "Persisting embeddings")
     if is_parent_retrieval_enabled():
         retriever = create_parent_retriever(
             documents,
-            EMBEDDING_MODEL_NAME,
+            resolved_embedding_model,
             "parent_retrieval",
             3,
             persist_directory
@@ -153,7 +197,7 @@ def index_documents(
         )
     else:
         retriever = get_retriever(
-            documents,
+            chunks,
             encoder,
             top_k=top_k,
             persist_directory=persist_directory,
@@ -165,23 +209,46 @@ def query_documents(
     question: str,
     top_k: int = 3,
     persist_directory: str | None = None,
+    embedding_model: str | None = None,
+    embedding_device: str | None = None,
+    embedding_provider: str | None = None,
+    embedding_api_key: str | None = None,
+    llm_model: str | None = None,
+    llm_provider: str | None = None,
+    llm_api_key: str | None = None,
     log_fn: Optional[Callable[..., None]] = None,
     report_path: str | None = None,
 ):
+    resolved_embedding_provider = _get_provider(embedding_provider)
+    resolved_embedding_model = _resolve_runtime_setting(
+        embedding_model,
+        "DOCUSUN_EMBEDDING_MODEL",
+    )
+    resolved_embedding_device = _resolve_embedding_device(embedding_device)
+    resolved_llm_provider = _get_provider(llm_provider)
+    resolved_llm_model = get_llm_model_name(model_name=llm_model)
+
     if not persist_directory:
-        persist_directory = _default_persist_directory(EMBEDDING_PROVIDER, EMBEDDING_MODEL_NAME)
-    _emit(log_fn, "kv", "Embedding model", EMBEDDING_MODEL_NAME)
+        persist_directory = _default_persist_directory(
+            resolved_embedding_provider,
+            resolved_embedding_model,
+        )
+    _emit(log_fn, "kv", "Embedding model", resolved_embedding_model)
+    _emit(log_fn, "kv", "Embedding provider", resolved_embedding_provider)
+    _emit(log_fn, "kv", "Embedding device", resolved_embedding_device)
     _emit(log_fn, "kv", "Persist directory", persist_directory)
     _emit(log_fn, "kv", "Top k", top_k)
     _emit(log_fn, "kv", "Question", question)
-    _emit(log_fn, "kv", "LLM model", get_llm_model_name())
+    _emit(log_fn, "kv", "LLM model", resolved_llm_model)
+    _emit(log_fn, "kv", "LLM provider", resolved_llm_provider)
     _emit(log_fn, "kv", "Hybrid search", is_hybrid_search_enabled())
 
     _emit(log_fn, "step", "Loading retriever")
     encoder = Encoder(
-        model_name=EMBEDDING_MODEL_NAME,
-        device=EMBEDDING_DEVICE,
-        provider=EMBEDDING_PROVIDER,
+        model_name=resolved_embedding_model,
+        device=resolved_embedding_device,
+        provider=resolved_embedding_provider,
+        api_key=embedding_api_key,
     )
     if is_hybrid_search_enabled():
         retriever = load_hybrid_retriever(
@@ -196,7 +263,15 @@ def query_documents(
             persist_directory=persist_directory,
         )
     _emit(log_fn, "step", "Retrieving context")
-    chain = get_prompt() | get_llm() | StrOutputParser()
+    chain = (
+        get_prompt()
+        | get_llm(
+            provider=resolved_llm_provider,
+            model_name=resolved_llm_model,
+            api_key=llm_api_key,
+        )
+        | StrOutputParser()
+    )
     context = retrieve_context(
             question, retriever=retriever,
         )
