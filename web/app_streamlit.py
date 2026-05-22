@@ -96,7 +96,6 @@ class CachedDocument(TypedDict):
 
 class RagSettings(TypedDict):
     chunk_size: int
-    chunk_overlap: int
     tokenization_model: str
     embedding_model: str
     embedding_device: str
@@ -167,22 +166,6 @@ def _get_file_cache() -> dict[str, CachedDocument]:
         st.session_state.file_cache = cache
     return cast(dict[str, CachedDocument], cache)
 
-
-def _get_chunk_overlap_bounds(chunk_size: int) -> tuple[int, int]:
-    min_overlap = max(1, math.ceil(chunk_size * 0.10))
-    max_overlap = max(min_overlap, math.floor(chunk_size * 0.20))
-    return min_overlap, max_overlap
-
-
-def _validate_chunk_overlap(chunk_size: int, chunk_overlap: int) -> int:
-    min_overlap, max_overlap = _get_chunk_overlap_bounds(chunk_size)
-    return min(max(chunk_overlap, min_overlap), max_overlap)
-
-
-def _get_default_chunk_overlap(chunk_size: int) -> int:
-    min_overlap, max_overlap = _get_chunk_overlap_bounds(chunk_size)
-    target_overlap = int(round(chunk_size * DEFAULT_CHUNK_OVERLAP_RATIO))
-    return min(max(target_overlap, min_overlap), max_overlap)
 
 
 def _to_env_bool(value: bool) -> str:
@@ -284,7 +267,6 @@ def _build_file_key(filename: str, content: bytes, settings: RagSettings) -> str
     settings_key = "|".join(
         [
             f"chunk_size={settings['chunk_size']}",
-            f"chunk_overlap={settings['chunk_overlap']}",
             f"tokenization_model={settings['tokenization_model']}",
             f"embedding_model={settings['embedding_model']}",
             f"embedding_device={settings['embedding_device']}",
@@ -443,7 +425,6 @@ def _prepare_document(
         index_documents(
             data_path=data_dir,
             chunk_size=settings["chunk_size"],
-            chunk_overlap=settings["chunk_overlap"],
             top_k=settings["top_k"],
             persist_directory=persist_dir,
             tokenizer_model=settings["tokenization_model"],
@@ -507,7 +488,7 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Choose your `.pdf` file", type=["pdf"])
     st.markdown("### Settings")
 
-    with st.expander("Tokenization", expanded=False):
+    with st.expander("Splitter", expanded=False):
         chunk_size = st.slider(
             "Chunk Size",
             min_value=100,
@@ -516,25 +497,7 @@ with st.sidebar:
             step=DEFAULT_CHUNK_SIZE_STEP,
             key="settings_chunk_size",
         )
-        min_overlap, max_overlap = _get_chunk_overlap_bounds(chunk_size)
-        overlap_state_key = "settings_chunk_overlap"
-        default_chunk_overlap = _get_default_chunk_overlap(chunk_size)
-        previous_chunk_overlap = st.session_state.get(overlap_state_key, default_chunk_overlap)
-        if not isinstance(previous_chunk_overlap, int):
-            previous_chunk_overlap = default_chunk_overlap
-        st.session_state[overlap_state_key] = _validate_chunk_overlap(
-            chunk_size,
-            previous_chunk_overlap,
-        )
-        chunk_overlap = st.slider(
-            "Chunk Overlap",
-            min_value=min_overlap,
-            max_value=max_overlap,
-            step=1,
-            key=overlap_state_key,
-        )
-        st.caption(f"Allowed overlap: {min_overlap} to {max_overlap} tokens (10%-20% of chunk size).")
-        
+    with st.expander("Tokenization", expanded=False):
         tokenization_label = st.selectbox(
             "Tokenization Model",
             options=list(TOKENIZATION_MODEL_MAP.keys()),
@@ -581,7 +544,6 @@ with st.sidebar:
 
     rag_settings: RagSettings = {
         "chunk_size": chunk_size,
-        "chunk_overlap": _validate_chunk_overlap(chunk_size, chunk_overlap),
         "tokenization_model": TOKENIZATION_MODEL_MAP[tokenization_label],
         "embedding_model": EMBEDDING_MODEL_MAP[embedding_label],
         "embedding_device": device_type,

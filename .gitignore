@@ -17,3 +17,6 @@ engine/ingestion/main.py
 chroma_db/
 chroma_db_local_*
 chroma_db_api_*
+
+# evaluation
+evaluation/results/*
