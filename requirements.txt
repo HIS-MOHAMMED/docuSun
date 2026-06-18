@@ -9,6 +9,7 @@ matplotlib
 jsonargparse
 pymupdf
 streamlit
+streamlit[pdf]
 langchain-ollama
 langchain-google-genai
 langchain-cohere
